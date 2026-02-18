@@ -1,6 +1,6 @@
 name: background_location
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
@@ -9,11 +9,23 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_background_service: ^5.1.0
+  flutter_riverpod: ^3.2.1
+  geolocator: ^14.0.2
+  path: ^1.9.1
+  riverpod_annotation: ^4.0.2
+  sqflite: ^2.4.2
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  build_runner: any
+  riverpod_generator: ^4.0.3
+
+dependency_overrides:
+  test_api: 0.7.9
 
 flutter:
   uses-material-design: true

@@ -1,1 +1,4 @@
 include: package:flutter_lints/flutter.yaml
+
+plugin:
+  riverpod_lint: ^3.1.3

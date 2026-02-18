@@ -4,10 +4,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../background/location_background_service.dart';
 
 class LocationService {
-  static Future<void> start() async {
+  static Future<void> initialize() async {
     final service = FlutterBackgroundService();
 
-    // 🔴 CREATE CHANNEL FIRST
     const channel = AndroidNotificationChannel(
       'guardian_route',
       'Guardian Route Tracking',
@@ -25,18 +24,34 @@ class LocationService {
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: locationService,
+        autoStart: false,
+        autoStartOnBoot: true,
         isForegroundMode: true,
         notificationChannelId: 'guardian_route',
         initialNotificationTitle: 'Guardian Route',
         initialNotificationContent: 'Tracking location in background',
       ),
-      iosConfiguration: IosConfiguration(onForeground: locationService),
+      iosConfiguration: IosConfiguration(
+        onForeground: locationService,
+        onBackground: _iosBackgroundHandler,
+      ),
     );
-
-    await service.startService();
   }
 
-  static void stop() {
+  @pragma('vm:entry-point')
+  static Future<bool> _iosBackgroundHandler(ServiceInstance service) async {
+    return true;
+  }
+
+  static Future<void> start() async {
+    final service = FlutterBackgroundService();
+    final isRunning = await service.isRunning();
+    if (!isRunning) {
+      await service.startService();
+    }
+  }
+
+  static Future<void> stop() async {
     FlutterBackgroundService().invoke('stopService');
   }
 }

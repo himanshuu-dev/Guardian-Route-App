@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:geolocator/geolocator.dart';
+
 import '../data/location_repository.dart';
 import '../models/location_point.dart';
 
 @pragma('vm:entry-point')
-void locationService(ServiceInstance service) {
+void locationService(ServiceInstance service) async {
+  DartPluginRegistrant.ensureInitialized();
+
   final repo = LocationRepository();
 
   Timer.periodic(const Duration(minutes: 5), (_) async {

@@ -6,6 +6,8 @@ import 'package:geolocator/geolocator.dart';
 import '../data/location_repository.dart';
 import '../models/location_point.dart';
 
+const double _runningSpeedMps = 2.2;
+
 @pragma('vm:entry-point')
 void locationService(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
@@ -33,6 +35,10 @@ void locationService(ServiceInstance service) async {
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: LocationSettings(accuracy: LocationAccuracy.high),
       );
+
+      if (pos.speed < _runningSpeedMps) {
+        return;
+      }
 
       await repo.insert(
         LocationPoint(

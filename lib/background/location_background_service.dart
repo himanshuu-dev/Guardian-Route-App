@@ -16,7 +16,7 @@ void locationService(ServiceInstance service) async {
 
   final repo = LocationRepository();
 
-  Timer.periodic(const Duration(seconds: 10), (_) async {
+  Timer.periodic(const Duration(minutes: 5), (_) async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
         await repo.insert(

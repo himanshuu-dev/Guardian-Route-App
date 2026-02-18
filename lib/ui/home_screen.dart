@@ -97,7 +97,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Stream<bool> getServiceStatusStream() {
-    return Stream.periodic(const Duration(seconds: 2), (count) {
+    return Stream.periodic(const Duration(seconds: 1), (count) {
       return count;
     }).asyncMap((token) async {
       return await FlutterBackgroundService().isRunning();
@@ -127,7 +127,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       body: StreamBuilder(
         stream: getServiceStatusStream(),
-        initialData: false,
         builder: (context, asyncSnapshot) {
           final running = asyncSnapshot.data ?? false;
 
@@ -166,18 +165,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   error: (e, _) => Text(e.toString()),
                 ),
               ),
-              if (!running)
+              if (!running) ...[
                 FilledButton(
                   onPressed: _startTracking,
                   child: const Text('Start Tracking'),
                 ),
-              if (running)
+              ] else ...[
                 FilledButton(
                   onPressed: () {
                     LocationService.stop();
                   },
                   child: const Text('Stop Tracking'),
                 ),
+              ],
             ],
           );
         },

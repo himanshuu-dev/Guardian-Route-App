@@ -77,6 +77,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (permission == LocationPermission.always) {
       await LocationService.start();
+      setState(() {
+        isServiceRunning = true;
+      });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Background tracking started.')),
@@ -96,12 +99,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Stream<bool> getServiceStatusStream() {
-    return Stream.periodic(const Duration(seconds: 1), (count) {
-      return count;
-    }).asyncMap((token) async {
-      return await FlutterBackgroundService().isRunning();
+  Future<void> updateServiceStatus() async {
+    final value = await FlutterBackgroundService().isRunning();
+    setState(() {
+      isServiceRunning = value;
     });
+  }
+
+  bool isServiceRunning = false;
+  @override
+  void initState() {
+    WidgetsBinding.instance.addPostFrameCallback((callback) {
+      updateServiceStatus();
+    });
+    super.initState();
   }
 
   @override
@@ -125,62 +136,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ),
-      body: StreamBuilder(
-        stream: getServiceStatusStream(),
-        builder: (context, asyncSnapshot) {
-          final running = asyncSnapshot.data ?? false;
-
-          return Column(
-            children: [
-              Expanded(
-                child: locations.when(
-                  data: (data) => ListView.separated(
-                    itemCount: data.length,
-                    itemBuilder: (_, i) => ListTile(
-                      onTap: () {
-                        openMap(
-                          latitude: data[i].latitude,
-                          longitude: data[i].longitude,
-                        );
-                      },
-                      leading: Icon(Icons.location_pin),
-                      trailing: Icon(Icons.map),
-                      dense: true,
-                      title: Text(
-                        '${data[i].error == LocationError.none ? '${data[i].latitude} - ${data[i].longitude}' : data[i].error}',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      subtitle: Text(
-                        DateFormat(
-                          'dd MMM yyyy, hh:mm a',
-                        ).format(data[i].timestamp.toLocal()),
-                      ),
-                    ),
-                    separatorBuilder: (BuildContext context, int index) {
-                      return Divider();
-                    },
-                  ),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Text(e.toString()),
-                ),
-              ),
-              if (!running) ...[
-                FilledButton(
-                  onPressed: _startTracking,
-                  child: const Text('Start Tracking'),
-                ),
-              ] else ...[
-                FilledButton(
-                  onPressed: () {
-                    LocationService.stop();
+      body: Column(
+        children: [
+          Expanded(
+            child: locations.when(
+              data: (data) => ListView.separated(
+                itemCount: data.length,
+                itemBuilder: (_, i) => ListTile(
+                  onTap: () {
+                    openMap(
+                      latitude: data[i].latitude,
+                      longitude: data[i].longitude,
+                    );
                   },
-                  child: const Text('Stop Tracking'),
+                  leading: Icon(Icons.location_pin),
+                  trailing: Icon(Icons.map),
+                  dense: true,
+                  title: Text(
+                    '${data[i].error == LocationError.none ? '${data[i].latitude} - ${data[i].longitude}' : data[i].error}',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  subtitle: Text(
+                    DateFormat(
+                      'dd MMM yyyy, hh:mm a',
+                    ).format(data[i].timestamp.toLocal()),
+                  ),
                 ),
-              ],
-            ],
-          );
-        },
+                separatorBuilder: (BuildContext context, int index) {
+                  return Divider();
+                },
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text(e.toString()),
+            ),
+          ),
+          if (!isServiceRunning) ...[
+            FilledButton(
+              onPressed: _startTracking,
+              child: const Text('Start Tracking'),
+            ),
+          ] else ...[
+            FilledButton(
+              onPressed: () {
+                LocationService.stop();
+                setState(() {
+                  isServiceRunning = false;
+                });
+              },
+              child: const Text('Stop Tracking'),
+            ),
+          ],
+        ],
       ),
     );
   }

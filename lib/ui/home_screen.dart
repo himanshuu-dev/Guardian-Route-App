@@ -2,6 +2,7 @@ import 'package:background_location/providers/location_providers.dart';
 import 'package:background_location/services/location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -11,6 +12,43 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Future<void> _startTracking() async {
+    final isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!isLocationEnabled) {
+      await Geolocator.openLocationSettings();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enable location services first.')),
+      );
+      return;
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.unableToDetermine) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.always) {
+      await LocationService.start();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Background tracking started.')),
+      );
+      return;
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      await Geolocator.openAppSettings();
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Location permission not granted.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final locations = ref.watch(recentLocationsProvider);
@@ -22,7 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
-                onPressed: LocationService.start,
+                onPressed: _startTracking,
                 child: const Text('Start Tracking'),
               ),
               const SizedBox(width: 16),
@@ -38,7 +76,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 itemCount: data.length,
                 itemBuilder: (_, i) => ListTile(
                   title: Text('${data[i].latitude}, ${data[i].longitude}'),
-                  subtitle: Text(data[i].timestamp.toString()),
+                  subtitle: Text('${data[i].timestamp}(${data[i].error})'),
                 ),
               ),
               loading: () => const Center(child: CircularProgressIndicator()),

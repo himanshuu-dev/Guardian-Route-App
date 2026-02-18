@@ -10,9 +10,13 @@ import '../models/location_point.dart';
 void locationService(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
+  service.on('stopService').listen((_) async {
+    service.stopSelf();
+  });
+
   final repo = LocationRepository();
 
-  Timer.periodic(const Duration(minutes: 5), (_) async {
+  Timer.periodic(const Duration(seconds: 10), (_) async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
         await repo.insert(
@@ -27,7 +31,7 @@ void locationService(ServiceInstance service) async {
       }
 
       final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
+        locationSettings: LocationSettings(accuracy: LocationAccuracy.high),
       );
 
       await repo.insert(

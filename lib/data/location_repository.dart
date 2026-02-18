@@ -18,7 +18,7 @@ class LocationRepository {
 
   /// READ: Used by UI (polling)
   void _startPolling() {
-    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       final db = await LocationDatabase.instance;
       final rows = await db.query(
         'locations',

@@ -65,6 +65,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(title: const Text('Guardian Route')),
       body: StreamBuilder(
         stream: getServiceStatusStream(),
+        initialData: false,
         builder: (context, asyncSnapshot) {
           final running = asyncSnapshot.data ?? false;
 

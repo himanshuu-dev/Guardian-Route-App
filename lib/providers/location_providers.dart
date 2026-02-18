@@ -12,5 +12,5 @@ LocationRepository locationRepository(Ref ref) {
 @riverpod
 Stream<List<LocationPoint>> recentLocations(Ref ref) {
   final repo = ref.watch(locationRepositoryProvider);
-  return repo.watchRecent().take(10);
+  return repo.watchRecent();
 }

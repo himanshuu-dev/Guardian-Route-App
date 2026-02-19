@@ -18,94 +18,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  Future<void> _showPermissionSettingsSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Location Permission Needed',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Location permission is permanently denied. Open app settings to allow background tracking.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      await Geolocator.openAppSettings();
-                    },
-                    child: const Text('Open Settings'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _startTracking() async {
-    final isLocationEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!isLocationEnabled) {
-      await Geolocator.openLocationSettings();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enable location services first.')),
-      );
-      return;
-    }
-
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.unableToDetermine) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.always) {
-      await LocationService.start();
-      setState(() {
-        isServiceRunning = true;
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Background tracking started.')),
-      );
-      return;
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (!mounted) return;
-      await _showPermissionSettingsSheet();
-      return;
-    }
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Location permission not granted.')),
-    );
-  }
-
-  Future<void> updateServiceStatus() async {
-    final value = await FlutterBackgroundService().isRunning();
-    setState(() {
-      isServiceRunning = value;
-    });
-  }
-
   bool isServiceRunning = false;
   @override
   void initState() {
@@ -189,6 +101,144 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showAlwaysPermissionSheet() async {
+    final title = Platform.isIOS
+        ? 'Allow Always Location'
+        : 'Allow All The Time';
+    final message = Platform.isIOS
+        ? 'To track in background, set location permission to "Always" in app settings.'
+        : 'To track in background, set location permission to "Allow all the time" in app settings.';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                Text(message, style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      await Geolocator.openAppSettings();
+                    },
+                    child: const Text('Open Settings'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showPermissionSettingsSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Location Permission Needed',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Location permission is permanently denied. Open app settings to allow background tracking.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      await Geolocator.openAppSettings();
+                    },
+                    child: const Text('Open Settings'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _startTracking() async {
+    final isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!isLocationEnabled) {
+      await Geolocator.openLocationSettings();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enable location services first.')),
+      );
+      return;
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.unableToDetermine) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.whileInUse) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.always) {
+      await LocationService.start(); // starting service if location permissin is set to always allow
+      setState(() {
+        isServiceRunning = true;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Background tracking started.')),
+      );
+      return;
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (!mounted) return;
+      await _showPermissionSettingsSheet();
+      return;
+    }
+
+    if (permission == LocationPermission.whileInUse) {
+      if (!mounted) return;
+      await _showAlwaysPermissionSheet();
+      return;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Location permission not granted.')),
+    );
+  }
+
+  Future<void> updateServiceStatus() async {
+    final value = await FlutterBackgroundService().isRunning();
+    setState(() {
+      isServiceRunning = value;
+    });
   }
 
   Future<void> openMap({

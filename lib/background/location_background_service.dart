@@ -108,11 +108,11 @@ Future<Position?> _fetchAdaptivePosition() async {
               activityType: ActivityType.fitness,
               pauseLocationUpdatesAutomatically: false,
               allowBackgroundLocationUpdates: true,
-              timeLimit: const Duration(seconds: 10),
+              timeLimit: const Duration(seconds: 20),
             )
           : LocationSettings(
               accuracy: accuracy,
-              timeLimit: const Duration(seconds: 10),
+              timeLimit: const Duration(seconds: 20),
             );
 
       final pos = await Geolocator.getCurrentPosition(

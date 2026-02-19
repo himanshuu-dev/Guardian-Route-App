@@ -78,6 +78,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!isServiceRunning) ...[
+            FilledButton(
+              onPressed: () async {
+                final bool hasPermission = await _checkPermissions();
+                if (hasPermission) {
+                  await LocationService.start();
+                  setState(() {
+                    isServiceRunning = true;
+                  });
+                }
+              },
+              child: const Text('Start Tracking'),
+            ),
+          ] else ...[
+            FilledButton(
+              style: ButtonStyle(
+                backgroundColor: WidgetStatePropertyAll(
+                  Theme.of(context).colorScheme.error,
+                ),
+              ),
+              onPressed: () {
+                LocationService.stop();
+                setState(() {
+                  isServiceRunning = false;
+                });
+              },
+              child: const Text('Stop Tracking'),
+            ),
+          ],
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -130,35 +164,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               error: (e, _) => Text(e.toString()),
             ),
           ),
-          if (!isServiceRunning) ...[
-            FilledButton(
-              onPressed: () async {
-                final bool hasPermission = await _checkPermissions();
-                if (hasPermission) {
-                  await LocationService.start();
-                  setState(() {
-                    isServiceRunning = true;
-                  });
-                }
-              },
-              child: const Text('Start Tracking'),
-            ),
-          ] else ...[
-            FilledButton(
-              style: ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll(
-                  Theme.of(context).colorScheme.error,
-                ),
-              ),
-              onPressed: () {
-                LocationService.stop();
-                setState(() {
-                  isServiceRunning = false;
-                });
-              },
-              child: const Text('Stop Tracking'),
-            ),
-          ],
         ],
       ),
     );

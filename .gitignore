@@ -44,4 +44,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-/iosConfig/Secrets.xcconfig
+/ios/Config/Secrets.xcconfig

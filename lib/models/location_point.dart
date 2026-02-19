@@ -2,6 +2,7 @@ enum LocationError {
   none,
   gpsDisabled,
   permissionDenied,
+  unknown
 }
 
 enum LocationAccuracyLevel {

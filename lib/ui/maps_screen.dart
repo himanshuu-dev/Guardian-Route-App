@@ -16,7 +16,10 @@ class MapScreenState extends State<MapScreen> {
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
 
-  static const LatLng _defaultTarget = LatLng(37.42796133580664, -122.085749655962);
+  static const LatLng _defaultTarget = LatLng(
+    37.42796133580664,
+    -122.085749655962,
+  );
   late final CameraPosition _initialCameraPosition;
   late final Polyline _polyline;
   late final Set<Marker> _markers;

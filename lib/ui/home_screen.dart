@@ -1,12 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:android_intent_plus/android_intent.dart';
 import 'package:background_location/models/location_point.dart';
 import 'package:background_location/providers/location_providers.dart';
 import 'package:background_location/services/location_service.dart';
 import 'package:background_location/ui/maps_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -21,156 +21,198 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool isServiceRunning = false;
+
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((callback) {
+    super.initState();
+    FlutterForegroundTask.addTaskDataCallback(_onTaskData);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       updateServiceStatus();
     });
-    super.initState();
+  }
+
+  @override
+  void dispose() {
+    FlutterForegroundTask.removeTaskDataCallback(_onTaskData);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final locations = ref.watch(recentLocationsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Guardian Route'),
-        centerTitle: false,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(16),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 17, bottom: 12),
-              child: Text(
-                'Showing last 10 location history',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          locations.when(
-            data: (List<LocationPoint> data) {
-              return data.isEmpty
-                  ? SizedBox.shrink()
-                  : IconButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (BuildContext context) {
-                              return MapScreen(points: data);
-                            },
-                          ),
-                        );
-                      },
-                      icon: Icon(Icons.map),
-                    );
-            },
-            error: (Object error, StackTrace stackTrace) {
-              return SizedBox.shrink();
-            },
-            loading: () {
-              return SizedBox.shrink();
-            },
-          ),
-        ],
-      ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!isServiceRunning) ...[
-            FilledButton(
-              onPressed: () async {
-                final bool hasPermission = await _checkPermissions();
-                if (hasPermission) {
-                  await LocationService.start();
-                  setState(() {
-                    isServiceRunning = true;
-                  });
-                }
-              },
-              child: const Text('Start Tracking'),
-            ),
-          ] else ...[
-            FilledButton(
-              style: ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll(
-                  Theme.of(context).colorScheme.error,
+    return WithForegroundTask(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Guardian Route'),
+          centerTitle: false,
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 17, bottom: 12),
+                child: Text(
+                  'Showing last 10 location history',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
-              onPressed: () {
-                LocationService.stop();
-                setState(() {
-                  isServiceRunning = false;
-                });
-              },
-              child: const Text('Stop Tracking'),
-            ),
-          ],
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: locations.when(
-              data: (data) => data.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'No Records Found',
-                              style: Theme.of(context).textTheme.titleSmall,
-                              textAlign: TextAlign.center,
-                            ),
-                            Text(
-                              'New record will display every 5 minutes if you start tracking',
-                              style: Theme.of(context).textTheme.bodySmall,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: data.length,
-                      itemBuilder: (_, i) => ListTile(
-                        onTap: () {
-                          openMap(
-                            latitude: data[i].latitude,
-                            longitude: data[i].longitude,
-                          );
-                        },
-                        leading: Icon(Icons.location_pin),
-                        trailing: Icon(Icons.chevron_right),
-                        dense: true,
-                        title: Text(
-                          '#${data[i].id}\n${data[i].error == LocationError.none ? '${data[i].latitude}, ${data[i].longitude} (Accuracy: ${data[i].accuracyLabel})' : data[i].error}',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-
-                        subtitle: Text(
-                          DateFormat(
-                            'dd MMM yyyy, hh:mm a',
-                          ).format(data[i].timestamp.toLocal()),
-                        ),
-                      ),
-                      separatorBuilder: (BuildContext context, int index) {
-                        return Divider();
-                      },
-                    ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Text(e.toString()),
             ),
           ),
-        ],
+          actions: [
+            locations.when(
+              data: (List<LocationPoint> data) {
+                return data.isEmpty
+                    ? SizedBox.shrink()
+                    : IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (BuildContext context) {
+                                return MapScreen(points: data);
+                              },
+                            ),
+                          );
+                        },
+                        icon: Icon(Icons.map),
+                      );
+              },
+              error: (Object error, StackTrace stackTrace) {
+                return SizedBox.shrink();
+              },
+              loading: () {
+                return SizedBox.shrink();
+              },
+            ),
+            // IconButton(
+            //   onPressed: () async {
+            //     try {
+            //       final pos = await Geolocator.getCurrentPosition(
+            //         locationSettings: LocationSettings(
+            //           accuracy: LocationAccuracy.medium,
+            //           timeLimit: Duration(seconds: 10),
+            //         ),
+            //       );
+            //       print(pos.latitude);
+            //       print(pos.longitude);
+            //     } catch (e) {
+            //       print(e);
+            //     }
+            //   },
+            //   icon: Icon(Icons.add),
+            // ),
+          ],
+        ),
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isServiceRunning) ...[
+              FilledButton(
+                onPressed: () async {
+                  final bool hasPermission = await _checkPermissions();
+                  if (!hasPermission) return;
+
+                  final started = await LocationService.start();
+                  if (!context.mounted) return;
+
+                  if (started) {
+                    setState(() {
+                      isServiceRunning = true;
+                    });
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to start tracking service.'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Start Tracking'),
+              ),
+            ] else ...[
+              FilledButton(
+                style: ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll(
+                    Theme.of(context).colorScheme.error,
+                  ),
+                ),
+                onPressed: () async {
+                  await LocationService.stop();
+                  if (!context.mounted) return;
+                  setState(() {
+                    isServiceRunning = false;
+                  });
+                },
+                child: const Text('Stop Tracking'),
+              ),
+            ],
+          ],
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: locations.when(
+                data: (data) => data.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'No Records Found',
+                                style: Theme.of(context).textTheme.titleSmall,
+                                textAlign: TextAlign.center,
+                              ),
+                              Text(
+                                'New record will display every 5 minute if you start tracking',
+                                style: Theme.of(context).textTheme.bodySmall,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: data.length,
+                        itemBuilder: (_, i) => ListTile(
+                          onTap: () {
+                            openMap(
+                              latitude: data[i].latitude,
+                              longitude: data[i].longitude,
+                            );
+                          },
+                          leading: Icon(Icons.location_pin),
+                          trailing: Icon(Icons.chevron_right),
+                          dense: true,
+                          title: Text(
+                            '#${data[i].id}\n${data[i].error == LocationError.none ? '${data[i].latitude}, ${data[i].longitude} (Accuracy: ${data[i].accuracyLabel})' : data[i].error}',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          subtitle: Text(
+                            DateFormat(
+                              'dd MMM yyyy, hh:mm a',
+                            ).format(data[i].timestamp.toLocal()),
+                          ),
+                        ),
+                        separatorBuilder: (BuildContext context, int index) {
+                          return Divider();
+                        },
+                      ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Text(e.toString()),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  void _onTaskData(Object data) {
+    if (!context.mounted) return;
+    ref.invalidate(recentLocationsProvider);
   }
 
   Future<void> _showAlwaysPermissionSheet() async {
@@ -277,14 +319,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     if (permission == LocationPermission.always) {
+      if (Platform.isAndroid &&
+          !await FlutterForegroundTask.isIgnoringBatteryOptimizations) {
+        await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Background tracking started.')),
         );
       }
-      await requestIgnoreBatteryOptimization(
-        'com.himanshu.background_location',
-      );
       return true;
     }
 
@@ -311,20 +355,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> updateServiceStatus() async {
-    final value = await FlutterBackgroundService().isRunning();
+    final value = await LocationService.isRunning();
+    if (!context.mounted) return;
     setState(() {
       isServiceRunning = value;
     });
-  }
-
-  Future<void> requestIgnoreBatteryOptimization(String packageName) async {
-    if (!Platform.isAndroid) return;
-
-    final intent = AndroidIntent(
-      action: 'android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
-      data: 'package:$packageName',
-    );
-    await intent.launch();
   }
 
   Future<void> openMap({
@@ -334,10 +369,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final Uri uri;
 
     if (Platform.isIOS) {
-      // Apple Maps
       uri = Uri.parse('https://maps.apple.com/?ll=$latitude,$longitude');
     } else {
-      // Google Maps (Android)
       uri = Uri.parse(
         'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude',
       );
@@ -348,3 +381,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 }
+

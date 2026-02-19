@@ -1,9 +1,11 @@
-import 'package:background_location/ui/home_screen.dart';
 import 'package:background_location/services/location_service.dart';
+import 'package:background_location/ui/home_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> main() async {
+  FlutterForegroundTask.initCommunicationPort();
   WidgetsFlutterBinding.ensureInitialized();
   await LocationService.initialize();
   runApp(ProviderScope(child: const MainApp()));

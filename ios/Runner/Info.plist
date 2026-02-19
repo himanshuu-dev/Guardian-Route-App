@@ -57,6 +57,12 @@
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>location</string>
+			<string>fetch</string>
+		</array>
+
+		<key>BGTaskSchedulerPermittedIdentifiers</key>
+		<array>
+			<string>com.pravera.flutter_foreground_task.refresh</string>
 		</array>
 
 		<key>GOOGLE_MAPS_API_KEY</key>

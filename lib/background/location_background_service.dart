@@ -54,19 +54,16 @@ void locationService(ServiceInstance service) async {
       }
 
       debugPrint('fetching location');
-      final pos = await _fetchAdaptivePosition();
-      if (pos == null) {
-        await repo.insert(
-          LocationPoint(
-            latitude: 0,
-            longitude: 0,
-            timestamp: DateTime.now(),
-            error: LocationError.permissionDenied,
-          ),
-        );
-        debugPrint('location unavailable after adaptive attempts');
-        return;
-      }
+      final LocationSettings locationSettings = Platform.isIOS
+          ? AppleSettings(
+              activityType: ActivityType.fitness,
+              pauseLocationUpdatesAutomatically: false,
+              allowBackgroundLocationUpdates: true,
+            )
+          : AndroidSettings();
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
+      );
       debugPrint('location inserted ${pos.latitude}, ${pos.longitude}');
 
       await repo.insert(
@@ -90,51 +87,4 @@ void locationService(ServiceInstance service) async {
       );
     }
   });
-}
-
-Future<Position?> _fetchAdaptivePosition() async {
-  final attempts = <LocationAccuracy>[
-    LocationAccuracy.high,
-    LocationAccuracy.medium,
-    LocationAccuracy.low,
-  ];
-
-  for (final accuracy in attempts) {
-    debugPrint('adaptive fetch: trying $accuracy');
-    try {
-      final LocationSettings settings = Platform.isIOS
-          ? AppleSettings(
-              accuracy: accuracy,
-              activityType: ActivityType.fitness,
-              pauseLocationUpdatesAutomatically: false,
-              allowBackgroundLocationUpdates: true,
-              timeLimit: const Duration(seconds: 20),
-            )
-          : LocationSettings(
-              accuracy: accuracy,
-              timeLimit: const Duration(seconds: 20),
-            );
-
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: settings,
-      );
-      debugPrint(
-        'adaptive fetch: success with $accuracy -> ${pos.latitude}, ${pos.longitude}',
-      );
-      return pos;
-    } catch (e) {
-      debugPrint('adaptive fetch: failed with $accuracy -> $e');
-    }
-  }
-
-  debugPrint('adaptive fetch: trying lastKnownPosition fallback');
-  final lastKnown = await Geolocator.getLastKnownPosition();
-  if (lastKnown == null) {
-    debugPrint('adaptive fetch: lastKnownPosition is null');
-  } else {
-    debugPrint(
-      'adaptive fetch: lastKnownPosition -> ${lastKnown.latitude}, ${lastKnown.longitude}',
-    );
-  }
-  return lastKnown;
 }

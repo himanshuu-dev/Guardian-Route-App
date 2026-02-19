@@ -119,18 +119,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               data: (data) => data.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'No Records Found',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          Text(
-                            'New record will display every 5 minutes if you start tracking',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'No Records Found',
+                              style: Theme.of(context).textTheme.titleSmall,
+                              textAlign: TextAlign.center,
+                            ),
+                            Text(
+                              'New record will display every 5 minutes if you start tracking',
+                              style: Theme.of(context).textTheme.bodySmall,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   : ListView.separated(

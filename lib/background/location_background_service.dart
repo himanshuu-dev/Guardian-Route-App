@@ -8,17 +8,22 @@ import 'package:geolocator/geolocator.dart';
 import '../data/location_repository.dart';
 import '../models/location_point.dart';
 
+Timer? _trackingTimer;
+
 @pragma('vm:entry-point')
 void locationService(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
   service.on('stopService').listen((_) async {
+    _trackingTimer?.cancel();
+    _trackingTimer = null;
     service.stopSelf();
   });
 
   final repo = LocationRepository(enablePolling: false);
 
-  Timer.periodic(const Duration(minutes: 1), (_) async {
+  _trackingTimer?.cancel();
+  _trackingTimer = Timer.periodic(const Duration(minutes: 5), (_) async {
     debugPrint('locationService called');
 
     try {

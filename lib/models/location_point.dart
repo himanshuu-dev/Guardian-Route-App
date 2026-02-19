@@ -19,22 +19,28 @@ class LocationPoint {
     this.error = LocationError.none,
   });
 
-  Map<String, dynamic> toMap() => {
-        'id': id,
-        'latitude': latitude,
-        'longitude': longitude,
-        'timestamp': timestamp.millisecondsSinceEpoch,
-        'error': error.index,
-      };
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
+      'latitude': latitude,
+      'longitude': longitude,
+      'timestamp': timestamp.millisecondsSinceEpoch,
+      'error': error.index,
+    };
+
+    if (id != null) {
+      map['id'] = id;
+    }
+
+    return map;
+  }
 
   factory LocationPoint.fromMap(Map<String, dynamic> map) {
     return LocationPoint(
       id: map['id'],
-      latitude: map['latitude'],
-      longitude: map['longitude'],
-      timestamp:
-          DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
-      error: LocationError.values[map['error']],
+      latitude: (map['latitude'] as num).toDouble(),
+      longitude: (map['longitude'] as num).toDouble(),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp'] as int),
+      error: LocationError.values[map['error'] as int],
     );
   }
 }

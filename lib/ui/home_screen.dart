@@ -82,7 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   trailing: Icon(Icons.chevron_right),
                   dense: true,
                   title: Text(
-                    '${data[i].error == LocationError.none ? '${data[i].latitude} - ${data[i].longitude}' : data[i].error}',
+                    '${data[i].id} ${data[i].error == LocationError.none ? '${data[i].latitude} - ${data[i].longitude}' : data[i].error}',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   subtitle: Text(
@@ -237,7 +237,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SnackBar(content: Text('Background tracking started.')),
         );
       }
-      await requestIgnoreBatteryOptimization('com.himanshu.background_location');
+      await requestIgnoreBatteryOptimization(
+        'com.himanshu.background_location',
+      );
       return true;
     }
 

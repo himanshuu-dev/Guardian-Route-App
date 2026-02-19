@@ -30,6 +30,9 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
+        manifestPlaceholders += mapOf(
+            "MAPS_API_KEY" to (project.findProperty("MAPS_API_KEY") ?: "")
+        )
     }
 
     buildTypes {

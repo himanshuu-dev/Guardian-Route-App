@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:android_intent_plus/android_intent.dart';
 import 'package:background_location/models/location_point.dart';
 import 'package:background_location/providers/location_providers.dart';
 import 'package:background_location/services/location_service.dart';
+import 'package:background_location/ui/maps_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,6 +49,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (BuildContext context) {
+                    return MapScreen();
+                  },
+                ),
+              );
+            },
+            icon: Icon(Icons.map),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -62,7 +79,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     );
                   },
                   leading: Icon(Icons.location_pin),
-                  trailing: Icon(Icons.map),
+                  trailing: Icon(Icons.chevron_right),
                   dense: true,
                   title: Text(
                     '${data[i].error == LocationError.none ? '${data[i].latitude} - ${data[i].longitude}' : data[i].error}',
@@ -84,7 +101,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           if (!isServiceRunning) ...[
             FilledButton(
-              onPressed: _startTracking,
+              onPressed: () async {
+                final bool hasPermission = await _checkPermissions();
+                if (hasPermission) {
+                  await LocationService.start();
+                  setState(() {
+                    isServiceRunning = true;
+                  });
+                }
+              },
               child: const Text('Start Tracking'),
             ),
           ] else ...[
@@ -182,15 +207,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Future<void> _startTracking() async {
+  Future<bool> _checkPermissions() async {
     final isLocationEnabled = await Geolocator.isLocationServiceEnabled();
     if (!isLocationEnabled) {
-      await Geolocator.openLocationSettings();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enable location services first.')),
-      );
-      return;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Enable (GPS) location services first.'),
+          ),
+        );
+      }
+      return false;
     }
 
     var permission = await Geolocator.checkPermission();
@@ -205,33 +232,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     if (permission == LocationPermission.always) {
-      await LocationService.start(); // starting service if location permissin is set to always allow
-      setState(() {
-        isServiceRunning = true;
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Background tracking started.')),
-      );
-      return;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Background tracking started.')),
+        );
+      }
+      await requestIgnoreBatteryOptimization('com.himanshu.background_location');
+      return true;
     }
 
     if (permission == LocationPermission.deniedForever) {
-      if (!mounted) return;
-      await _showPermissionSettingsSheet();
-      return;
+      if (mounted) {
+        await _showPermissionSettingsSheet();
+      }
+      return false;
     }
 
     if (permission == LocationPermission.whileInUse) {
-      if (!mounted) return;
-      await _showAlwaysPermissionSheet();
-      return;
+      if (mounted) {
+        await _showAlwaysPermissionSheet();
+      }
+      return false;
     }
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Location permission not granted.')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location permission not granted.')),
+      );
+    }
+    return false;
   }
 
   Future<void> updateServiceStatus() async {
@@ -239,6 +268,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     setState(() {
       isServiceRunning = value;
     });
+  }
+
+  Future<void> requestIgnoreBatteryOptimization(String packageName) async {
+    if (!Platform.isAndroid) return;
+
+    final intent = AndroidIntent(
+      action: 'android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
+      data: 'package:$packageName',
+    );
+    await intent.launch();
   }
 
   Future<void> openMap({

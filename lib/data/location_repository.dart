@@ -4,10 +4,14 @@ import '../models/location_point.dart';
 
 class LocationRepository {
   final _controller = StreamController<List<LocationPoint>>.broadcast();
+  final bool _enablePolling;
   Timer? _pollTimer;
 
-  LocationRepository() {
-    _startPolling();
+  LocationRepository({bool enablePolling = true})
+      : _enablePolling = enablePolling {
+    if (_enablePolling) {
+      _startPolling();
+    }
   }
 
   /// WRITE: Used by background service
@@ -18,7 +22,14 @@ class LocationRepository {
 
   /// READ: Used by UI (polling)
   void _startPolling() {
+    _emitLatest();
     _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      await _emitLatest();
+    });
+  }
+
+  Future<void> _emitLatest() async {
+    try {
       final db = await LocationDatabase.instance;
       final rows = await db.query(
         'locations',
@@ -27,7 +38,9 @@ class LocationRepository {
       );
 
       _controller.add(rows.map(LocationPoint.fromMap).toList());
-    });
+    } catch (error, stackTrace) {
+      _controller.addError(error, stackTrace);
+    }
   }
 
   Stream<List<LocationPoint>> watchRecent() => _controller.stream;

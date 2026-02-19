@@ -14,7 +14,7 @@ class LocationDatabase {
     final path = join(await getDatabasesPath(), 'locations.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, _) async {
         await _createLocationsTable(db);
       },
@@ -29,6 +29,11 @@ class LocationDatabase {
           ''');
           await db.execute('DROP TABLE locations_old');
         }
+        if (oldVersion < 3) {
+          await db.execute(
+            'ALTER TABLE locations ADD COLUMN accuracy REAL',
+          );
+        }
       },
     );
   }
@@ -39,6 +44,7 @@ class LocationDatabase {
         id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
         latitude REAL NOT NULL,
         longitude REAL NOT NULL,
+        accuracy REAL,
         timestamp INTEGER NOT NULL,
         error INTEGER NOT NULL DEFAULT 0
       )

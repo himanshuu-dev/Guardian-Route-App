@@ -6,7 +6,9 @@ part 'location_providers.g.dart';
 
 @riverpod
 LocationRepository locationRepository(Ref ref) {
-  return LocationRepository();
+  final repo = LocationRepository();
+  ref.onDispose(repo.dispose);
+  return repo;
 }
 
 @riverpod

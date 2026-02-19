@@ -32,6 +32,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final locations = ref.watch(recentLocationsProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Guardian Route'),
@@ -50,18 +51,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (BuildContext context) {
-                    return MapScreen();
-                  },
-                ),
-              );
+          locations.when(
+            data: (List<LocationPoint> data) {
+              return data.isEmpty
+                  ? SizedBox.shrink()
+                  : IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (BuildContext context) {
+                              return MapScreen(points: data);
+                            },
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.map),
+                    );
             },
-            icon: Icon(Icons.map),
+            error: (Object error, StackTrace stackTrace) {
+              return SizedBox.shrink();
+            },
+            loading: () {
+              return SizedBox.shrink();
+            },
           ),
         ],
       ),
@@ -69,32 +82,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           Expanded(
             child: locations.when(
-              data: (data) => ListView.separated(
-                itemCount: data.length,
-                itemBuilder: (_, i) => ListTile(
-                  onTap: () {
-                    openMap(
-                      latitude: data[i].latitude,
-                      longitude: data[i].longitude,
-                    );
-                  },
-                  leading: Icon(Icons.location_pin),
-                  trailing: Icon(Icons.chevron_right),
-                  dense: true,
-                  title: Text(
-                    '${data[i].id} ${data[i].error == LocationError.none ? '${data[i].latitude} - ${data[i].longitude}' : data[i].error}',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  subtitle: Text(
-                    DateFormat(
-                      'dd MMM yyyy, hh:mm a',
-                    ).format(data[i].timestamp.toLocal()),
-                  ),
-                ),
-                separatorBuilder: (BuildContext context, int index) {
-                  return Divider();
-                },
-              ),
+              data: (data) => data.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'No Records Found',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          Text(
+                            'New record will display every 5 minutes if you start tracking',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: data.length,
+                      itemBuilder: (_, i) => ListTile(
+                        onTap: () {
+                          openMap(
+                            latitude: data[i].latitude,
+                            longitude: data[i].longitude,
+                          );
+                        },
+                        leading: Icon(Icons.location_pin),
+                        trailing: Icon(Icons.chevron_right),
+                        dense: true,
+                        title: Text(
+                          '#${data[i].id}\n${data[i].error == LocationError.none ? '${data[i].latitude}, ${data[i].longitude} (Accuracy: ${data[i].accuracyLabel})' : data[i].error}',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+
+                        subtitle: Text(
+                          DateFormat(
+                            'dd MMM yyyy, hh:mm a',
+                          ).format(data[i].timestamp.toLocal()),
+                        ),
+                      ),
+                      separatorBuilder: (BuildContext context, int index) {
+                        return Divider();
+                      },
+                    ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Text(e.toString()),
             ),
@@ -114,6 +145,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ] else ...[
             FilledButton(
+              style: ButtonStyle(
+                backgroundColor: WidgetStatePropertyAll(
+                  Theme.of(context).colorScheme.error,
+                ),
+              ),
               onPressed: () {
                 LocationService.stop();
                 setState(() {
